@@ -560,6 +560,10 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 .empty{text-align:center;padding:56px 22px;color:var(--tx3);font-size:14px;border:1px dashed var(--line2);
   border-radius:var(--r2);background:var(--glass);backdrop-filter:blur(12px)}
 .empty b{display:block;color:var(--tx2);font-size:15.5px;margin-bottom:7px;font-weight:650}
+/* a quieter aside than .empty — used when there IS content, just not enough of it yet */
+.note{padding:13px 15px;margin-bottom:14px;color:var(--tx3);font-size:13.5px;line-height:1.55;
+  border:1px dashed var(--line2);border-radius:var(--r2);background:var(--glass)}
+.note b{color:var(--tx2);font-weight:650}
 
 /* ============ chart ============ */
 .chart{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);
@@ -1012,9 +1016,10 @@ button,summary,[role=button]{touch-action:manipulation}
     <h2 class="vh">Value history — <span id="histSet"></span></h2>
     <p class="vs">Tracked separately for each set. A snapshot is saved automatically the first time you open a set each day, and whenever you ask for one. Refreshing prices later will show up here as a step in the line.</p>
     <div class="tools"><button class="btn" id="bSnapNow">Save a snapshot now</button></div>
-    <div class="empty" id="histEmpty" style="display:none"><b>Not enough history yet</b>You need at least two snapshots before there's a line to draw. Come back tomorrow, or log some cards and hit <b style="display:inline">Save a snapshot now</b>.</div>
+    <div class="empty" id="histEmpty" style="display:none"><b>No snapshots yet</b>One is saved automatically the first time you open a set each day. Hit <b style="display:inline">Save a snapshot now</b> to take the first one.</div>
     <div id="histWrap">
-      <div class="chart">
+      <div class="note" id="histOne" style="display:none"></div>
+      <div class="chart" id="chartBox">
         <h3 id="chartTitle">Collection value over time</h3>
         <div class="cs" id="chartSub"></div>
         <div id="chartSvg"></div>
@@ -1929,19 +1934,38 @@ function histOf(sid){
   if(!S.hist || Array.isArray(S.hist)) S.hist = {};
   return (S.hist[sid || S.setId] = S.hist[sid || S.setId] || []);
 }
+// Returns "added" or "updated" so the caller can say which it was — a snapshot is one
+// point per calendar day, so clicking the button twice in a day revises today's figure
+// rather than drawing a second point. Without a word about it that reads as a dead button.
 function snapshot(manual){
   const t = totals(), h = histOf();
-  if(!t.cps && !manual) return;
+  if(!t.cps && !manual) return null;
   const d = today(), last = h[h.length-1];
-  if(last && last.d === d){ last.v = t.val; last.c = t.cps; }
+  let how = "added";
+  if(last && last.d === d){ how = "updated"; last.v = t.val; last.c = t.cps; }
   else h.push({d, v:t.val, c:t.cps});
   if(h.length > 400) S.hist[S.setId] = h.slice(-400);
+  return how;
+}
+function snapMsg(how){
+  const h = histOf(), p = h[h.length-1];
+  return (how === "updated" ? "Today's snapshot updated — " : "Snapshot saved — ") +
+    money(p.v) + " · " + p.c + (p.c === 1 ? " copy" : " copies");
 }
 function drawHistory(){
   const h = histOf();
   $("#histSet").textContent = curSet().name;
-  $("#histEmpty").style.display = h.length < 2 ? "block" : "none";
-  $("#histWrap").style.display  = h.length < 2 ? "none" : "";
+  // Show whatever we have. Only the *chart* needs two points; hiding the table too meant
+  // taking the first snapshot looked like nothing had happened at all.
+  $("#histEmpty").style.display = h.length ? "none" : "block";
+  $("#histWrap").style.display  = h.length ? "" : "none";
+  $("#chartBox").style.display  = h.length < 2 ? "none" : "";
+  const one = $("#histOne");
+  one.style.display = h.length === 1 ? "" : "none";
+  if(h.length === 1)
+    one.innerHTML = `<b>One snapshot so far</b> — ${h[0].d}, ${money(h[0].v)} across ` +
+      `${h[0].c} ${h[0].c===1?"copy":"copies"}. A line needs two, so the chart appears ` +
+      `tomorrow. Saving again today revises this figure rather than adding a second point.`;
   $("#histTbl").innerHTML = h.slice().reverse().map((p,i,arr)=>{
     const prev = arr[i+1], d = prev ? p.v - prev.v : null;
     return `<tr><td class="k-name">${p.d}</td><td class="n" data-l="value">${money(p.v)}</td>
@@ -2102,7 +2126,7 @@ function wire(){
   $("#mJSON").onclick = exportJSON;
   $("#mCSV").onclick  = exportCSV;
   $("#mPrint").onclick = ()=>{ buildPrint(); setTimeout(()=>window.print(), 60); };
-  $("#mSnap").onclick = ()=>{ snapshot(true); save(); toast("Snapshot saved"); setView("history"); };
+  $("#mSnap").onclick = ()=>{ const how = snapshot(true); save(); setView("history"); toast(snapMsg(how)); };
   $("#mImport").onclick = ()=>$("#fImport").click();
   $("#mSync").onclick = ()=>{ $("#menu").classList.remove("open"); openSync(); };
   $("#mReset").onclick = ()=>{
@@ -2215,7 +2239,7 @@ function wire(){
   $("#v-trade").addEventListener("click", e=>{
     const o = e.target.closest("[data-open]"); if(o){ e.preventDefault(); openCard(+o.dataset.open); }
   });
-  $("#bSnapNow").onclick = ()=>{ snapshot(true); save(); drawHistory(); toast("Snapshot saved"); };
+  $("#bSnapNow").onclick = ()=>{ const how = snapshot(true); save(); drawHistory(); toast(snapMsg(how)); };
 
   // modal
   $("#ov").onclick = e => { if(e.target.id === "ov") closeCard(); };
