@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070b14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#eef1f7" media="(prefers-color-scheme: light)">
+<meta name="color-scheme" content="dark light">
+<title>__TITLE__</title>
+<meta name="description" content="__DESC__">
+<link rel="icon" type="image/png" href="__ICON_FAV__">
+<link rel="apple-touch-icon" href="__ICON_APPLE__">
+<!-- iOS: launch from the home screen without Safari's chrome, and label the icon -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="__NAME__">
+<script>const ICONS = __ICONS__;</script>
+<style>__CSS__</style>
+</head>
+<body>
+
+<header>
+  <div class="hwrap">
+    <div class="brand">
+      <div class="mark">CV</div>
+      <div><h1>__NAME__</h1><span>__TAGLINE__</span></div>
+    </div>
+    <button class="btn" id="bTheme">&#9789; Dark</button>
+    <div class="menu" id="menu">
+      <button class="btn pri" id="bMenu">Data &#9662;</button>
+      <div class="pop">
+        <button id="mJSON">Export backup (.json)</button>
+        <button id="mCSV">Export spreadsheet (.csv)</button>
+        <button id="mPrint">Print missing-cards checklist</button>
+        <hr>
+        <button id="mSnap">Save a value snapshot</button>
+        <button id="mImport">Import backup…</button>
+        <hr>
+        <button id="mSync">Sync across devices…</button>
+        <hr>
+        <button id="mReset" style="color:var(--red)">Reset everything</button>
+      </div>
+    </div>
+    <input type="file" id="fImport" accept=".json,application/json" hidden>
+  </div>
+</header>
+
+<nav><div class="nwrap">
+  <button class="tab on" data-v="binder">Binder</button>
+  <button class="tab" data-v="bulk">Bulk entry</button>
+  <button class="tab" data-v="roi">Grading ROI</button>
+  <button class="tab" data-v="wish">Wishlist <span class="pill" id="nWish">0</span></button>
+  <button class="tab" data-v="trade">Trades <span class="pill" id="nTrade">0</span></button>
+  <button class="tab" data-v="history">Value history</button>
+</div></nav>
+
+<div class="main">
+  <div class="sets" id="sets"></div>
+
+  <section class="hero" id="hero">
+    <div class="heroL">
+      <div class="hkicker" id="hKick"></div>
+      <div class="hval" id="hVal">$0.00</div>
+      <div class="hsub" id="hSub"></div>
+      <div class="hbars">
+        <div class="hbar"><div class="bt"><span>Master set · incl. variants</span><b id="hbmT">0%</b></div>
+          <div class="htrack"><i id="hbm"></i></div></div>
+        <div class="hbar"><div class="bt"><span>Base set · 130 cards</span><b id="hbbT">0%</b></div>
+          <div class="htrack"><i id="hbb"></i></div></div>
+      </div>
+      <div class="hpills" id="hPills"></div>
+    </div>
+    <div class="heroR" id="heroR"></div>
+  </section>
+
+  <!-- ================= binder ================= -->
+  <section class="view on" id="v-binder">
+    <div class="tools">
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="q" placeholder="Search name or number…  ( / )">
+      </div>
+      <select class="f" id="fRar"></select>
+      <div class="seg" id="fOwn">
+        <button data-v="all" class="on">All</button><button data-v="owned">Owned</button>
+        <button data-v="missing">Missing</button><button data-v="wish">Wishlist</button>
+      </div>
+      <select class="f" id="fSort">
+        <option value="num">Sort: card number</option>
+        <option value="val">Sort: value (high→low)</option>
+        <option value="name">Sort: name (A→Z)</option>
+        <option value="qty">Sort: copies owned</option>
+      </select>
+      <div class="seg" id="fLay"><button data-v="grid" class="on">Grid</button><button data-v="list">List</button></div>
+      <div class="sizer">size <input type="range" id="tile" min="112" max="260" step="4"><span id="tileV">172px</span></div>
+      <span class="count" id="count"></span>
+    </div>
+    <div id="binderBody">
+      <div class="grid" id="grid"></div>
+      <div class="tblwrap" id="listWrap" style="display:none"><table class="stack"><thead><tr>
+        <th class="n">#</th><th></th><th>Card</th><th>Rarity</th><th class="n">Vars</th>
+        <th class="n">Raw</th><th class="n">PSA 10</th><th class="n">Copies</th><th class="n">Value</th><th></th>
+      </tr></thead><tbody id="list"></tbody></table></div>
+      <div class="empty" id="gridEmpty" style="display:none"><b>Nothing matches those filters</b>Try clearing the search or switching back to All.</div>
+    </div>
+  </section>
+
+  <!-- ================= bulk ================= -->
+  <section class="view" id="v-bulk">
+    <h2 class="vh">Bulk entry</h2>
+    <p class="vs">One row per printing, grouped by card. The three boxes are <b>how many you
+      own</b> of that printing — ungraded, and in a PSA 9 or PSA 10 slab. Type a number and press
+      <kbd>Tab</kbd> to jump to the next box; everything saves as you type.</p>
+    <p class="vs">The <b>Printing</b> column names the finish exactly: <b>Base</b> for a plain
+      non-holo card, <b>Holo</b> where the pack card is foil (every Rare and above), and
+      <b>Reverse Holo</b> for the parallel. Promos, deck exclusives and other one-offs are
+      hidden until you switch the printing filter — they're real cards, just not pack pulls.</p>
+    <div class="tools">
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="bq" placeholder="Search name or number…">
+      </div>
+      <select class="f" id="bRar"></select>
+      <select class="f" id="bVar">
+        <option value="set">Set only — no promos</option>
+        <option value="all">Everything incl. promos</option>
+        <option value="base">Standard printing only (base / holo)</option>
+        <option value="rh">Reverse holo only</option><option value="promo">Promos &amp; specials only</option>
+      </select>
+      <select class="f" id="bOwn">
+        <option value="all">Owned + missing</option><option value="own">Owned only</option><option value="miss">Missing only</option>
+      </select>
+      <span class="count" id="bCount"></span>
+    </div>
+    <div class="tblwrap"><table class="compact"><thead>
+    <tr class="hgrp">
+      <th colspan="5"></th><th class="n hg" colspan="3">Copies you own</th><th></th>
+    </tr>
+    <tr>
+      <th class="n">#</th><th>Card</th><th>Printing</th><th>Rarity</th><th class="n">Market</th>
+      <th class="n">Raw</th><th class="n">PSA 9</th><th class="n">PSA 10</th><th class="n">Value</th>
+    </tr></thead><tbody id="bulk"></tbody></table></div>
+  </section>
+
+  <!-- ================= roi ================= -->
+  <section class="view" id="v-roi">
+    <h2 class="vh">Grading ROI</h2>
+    <p class="vs">Which cards are actually worth sending to PSA. Expected value blends the PSA 10 and PSA 9 prices by the gem rate you set, then subtracts what the raw card and the grading cost you.</p>
+    <div class="panel">
+      <div class="knobs">
+        <div class="knob"><label>Grading fee / card</label><input type="number" id="roiFee" min="0" step="1"></div>
+        <div class="knob"><label>Shipping / card</label><input type="number" id="roiShip" min="0" step="0.5"></div>
+        <div class="knob"><label>Gem (PSA 10) rate</label>
+          <input type="range" id="roiGem" min="0" max="100" step="5"><span class="rv" id="roiGemV">40%</span></div>
+        <div class="knob"><label>Scope</label>
+          <div class="seg" id="roiScope"><button data-v="own" class="on">Cards I own</button><button data-v="all">All cards</button></div></div>
+      </div>
+      <p class="vs" style="margin:14px 0 0" id="roiSum"></p>
+    </div>
+    <div class="tools"><span class="count" id="roiCount" style="margin:0"></span></div>
+    <div class="empty" id="roiEmpty" style="display:none"></div>
+    <div class="tblwrap" id="roiWrap"><table class="stack"><thead><tr>
+      <th class="n">#</th><th>Card</th><th class="n">Have</th><th class="n">Raw</th><th class="n">PSA 9</th>
+      <th class="n">PSA 10</th><th class="n">Expected</th><th class="n">All-in cost</th>
+      <th class="n">Profit</th><th class="n">ROI</th>
+    </tr></thead><tbody id="roi"></tbody></table></div>
+  </section>
+
+  <!-- ================= wishlist ================= -->
+  <section class="view" id="v-wish">
+    <h2 class="vh">Wishlist</h2>
+    <p class="vs" id="wishSum">Cards you're hunting. Star any card in the binder (or press <kbd>w</kbd>) to add it here.</p>
+    <div class="empty" id="wishEmpty" style="display:none"><b>Nothing on the wishlist yet</b>Hover a card in the Binder and click the ☆, or select a card and press <kbd>w</kbd>.</div>
+    <div class="tblwrap" id="wishWrap"><table class="stack"><thead><tr>
+      <th class="n">#</th><th></th><th>Card</th><th>Rarity</th><th class="n">Raw</th><th class="n">PSA 10</th>
+      <th>Status</th><th></th>
+    </tr></thead><tbody id="wish"></tbody></table></div>
+  </section>
+
+  <!-- ================= trades ================= -->
+  <section class="view" id="v-trade">
+    <h2 class="vh">Trade binder</h2>
+    <p class="vs" id="tradeSum">Every slot where you hold more than one copy. The spares are what you can trade or sell.</p>
+    <div class="tools"><button class="btn" id="bCopyTrade">Copy trade list to clipboard</button></div>
+    <div class="empty" id="tradeEmpty" style="display:none"><b>No duplicates yet</b>Once you log a second copy of any card it shows up here automatically.</div>
+    <div class="tblwrap" id="tradeWrap"><table class="stack"><thead><tr>
+      <th class="n">#</th><th></th><th>Card</th><th>Rarity</th><th class="n">Have</th>
+      <th class="n">Spare</th><th class="n">Raw ea.</th><th class="n">Spare value</th>
+    </tr></thead><tbody id="trade"></tbody></table></div>
+  </section>
+
+  <!-- ================= history ================= -->
+  <section class="view" id="v-history">
+    <h2 class="vh">Value history — <span id="histSet"></span></h2>
+    <p class="vs">Tracked separately for each set. A snapshot is saved automatically the first time you open a set each day, and whenever you ask for one. Refreshing prices later will show up here as a step in the line.</p>
+    <div class="tools"><button class="btn" id="bSnapNow">Save a snapshot now</button></div>
+    <div class="empty" id="histEmpty" style="display:none"><b>No snapshots yet</b>One is saved automatically the first time you open a set each day. Hit <b style="display:inline">Save a snapshot now</b> to take the first one.</div>
+    <div id="histWrap">
+      <div class="note" id="histOne" style="display:none"></div>
+      <div class="chart" id="chartBox">
+        <h3 id="chartTitle">Collection value over time</h3>
+        <div class="cs" id="chartSub"></div>
+        <div id="chartSvg"></div>
+        <div class="ct" id="ctip"></div>
+      </div>
+      <div class="tblwrap" style="margin-top:16px;max-height:340px"><table class="stack"><thead><tr>
+        <th>Date</th><th class="n">Value</th><th class="n">Copies</th><th class="n">Change</th>
+      </tr></thead><tbody id="histTbl"></tbody></table></div>
+    </div>
+  </section>
+</div>
+
+<footer id="foot"></footer>
+
+<div class="ov" id="ov"><div class="modal" id="modal"></div></div>
+<div class="ov" id="setov"><div class="modal setmodal" id="setModal"></div></div>
+<div class="ov" id="syov"><div class="modal setmodal" id="syModal"></div></div>
+<div id="prev"></div>
+<div class="toast" id="toast"></div>
+<canvas id="confetti"></canvas>
+<div class="cheer" id="cheer"></div>
+<div id="print"></div>
+
+<script>const DATA = __DATA__;</script>
+<script>__JS__</script>
+</body>
+</html>
